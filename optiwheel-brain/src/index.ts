@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import { z } from "zod";
+import cors from "cors"
 
 const app = express();
 
@@ -21,6 +22,9 @@ app.use(
   })
 );
 app.use(express.json({}));
+app.use(cors({
+  origin: "*"
+}));
 
 app.get("/", (req: Request, res: Response, next: NextFunction): void => {
   console.table({ dir });
