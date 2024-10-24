@@ -2,17 +2,13 @@ import cv2
 import numpy as np
 import dlib
 from math import hypot
-from requests import Session
+from requests import post, get
 from time import sleep
 
 predictor = dlib.shape_predictor("./shape_predictor_68_face_landmarks.dat")
 
-# session = Session()
+server_url = "http://localhost:8080"
 
-def rpi_server_url(endpoint):
-    return f"http://192.168.118.185:80/{endpoint}"
-
-# session.get(rpi_server_url("neutral"))
 
 def length(p1, p2):
     return hypot(p1[0] - p2[0], p1[1] - p2[1])
@@ -68,6 +64,25 @@ def getLidRatio(eyeLandmarks):
     return eyeRatio
 
 
+def sendDir(direction):
+    vector = {
+        "x": 0,
+        "y": 0,
+    }
+    match direction:
+        case "left":
+            vector["x"] = -1
+        case "right":
+            vector["x"] = 1
+        case "forward":
+            vector["y"] = 1
+        case "neutral":
+            pass
+    print(vector)
+
+    post("http://localhost:8080", json=vector)
+
+
 def drawEye(eyePoints):
     leftEye = eyePoints[:6]
     rightEye = eyePoints[6:]
@@ -93,28 +108,25 @@ def drawEye(eyePoints):
 
     diff = leftEyeRatio - rightEyeRatio
     avgRatio = (leftEyeRatio + rightEyeRatio) / 2
-    url = rpi_server_url("neutral")
+    dir = "neutral"
     if avgRatio > 4.75:
         print("neutral")
     else:
         if diff > 0.25:
+            dir = "left"
             print("left")
-            url = rpi_server_url("left")
         elif diff < -0.25:
+            dir = "right"
             print("right")
-            url = rpi_server_url("right")
         else:
+            dir = "forward"
             print("forward")
-            url = rpi_server_url("forward")
-    
-    # session.get(url)
 
-    # sleep(0.5)
-    # cv2.line(frame, leftVerticalP1, leftVerticalP2, (170, 255, 34), 1)
-    # cv2.line(frame, rightVerticalP1, rightVerticalP2, (170, 255, 34), 1)
+    sendDir(dir)
 
 
-cap = cv2.VideoCapture(1)
+videoIdx = int(input("Enter video index: "))
+cap = cv2.VideoCapture(videoIdx)
 detector = dlib.get_frontal_face_detector()
 
 while True:
